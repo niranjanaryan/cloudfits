@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>cloudfits — Web</title>
+<style>
+  :root { --bg:#0f1117; --panel:#171a23; --border:#2a2f3a; --text:#e6e8ee; --muted:#8b93a3; --accent:#e3a008; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; background:var(--bg); color:var(--text); }
+  header { padding:18px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+  header h1 { font-size:18px; margin:0; color:var(--accent); }
+  header span.sub { color:var(--muted); font-size:13px; }
+  .wrap { max-width:980px; margin:24px auto; padding:0 24px; display:grid; gap:20px; }
+  .panel { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px; }
+  .panel h2 { margin:0 0 16px; font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+  input,select { width:100%; padding:9px 10px; background:#0d0f14; color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit; }
+  button { margin-top:16px; padding:10px 18px; background:var(--accent); color:#111; border:none; border-radius:6px; font:inherit; font-weight:bold; cursor:pointer; }
+  button:hover { filter:brightness(1.1); }
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:13px; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-size:12px; text-transform:uppercase; }
+  td.num { text-align:right; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; border:1px solid var(--border); color:var(--muted); }
+  .muted { color:var(--muted); }
+  #err { color:#ff6b6b; }
+</style>
+</head>
+<body>
+<header>
+  <h1>cloudfits</h1>
+  <span class="sub">estimate LLM inference cost · per hour · per month · switch providers</span>
+</header>
+
+<div class="wrap">
+  <div class="panel" id="model-form">
+    <h2>Estimate cost</h2>
+    <div class="grid">
+      <div>
+        <label>Model</label>
+        <input id="model" type="text" value="llama-3.1-8b-instruct" />
+      </div>
+      <div>
+        <label>Provider</label>
+        <select id="provider"></select>
+      </div>
+      <div>
+        <label>Electricity ($/kWh)</label>
+        <input id="electricity" type="number" step="0.01" value="0.12" />
+      </div>
+      <div>
+        <label>Hours / day</label>
+        <input id="hours" type="number" value="24" />
+      </div>
+      <div>
+        <label>Days / month</label>
+        <input id="days" type="number" value="30" />
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <button id="btn">Estimate</button>
+      </div>
+    </div>
+    <p id="err"></p>
+  </div>
+
+  <div class="panel">
+    <h2>Local vs cloud (this model)</h2>
+    <div id="report"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Compare all providers</h2>
+    <div id="compare"></div>
+  </div>
+</div>
+
+<script>
+const PROVIDERS = [
+  {name:"Ollama",kind:"local",in:0,out:0,hr:null},
+  {name:"Together AI",kind:"api",in:0.15,out:0.15,hr:null},
+  {name:"OpenRouter",kind:"api",in:0.25,out:1.25,hr:null},
+  {name:"Groq",kind:"api",in:0.59,out:0.79,hr:null},
+  {name:"Fireworks",kind:"api",in:0.10,out:0.10,hr:null},
+  {name:"Google Vertex",kind:"cloud",in:0.35,out:1.25,hr:null},
+  {name:"Azure OpenAI",kind:"cloud",in:0.60,out:1.80,hr:null},
+  {name:"AWS Bedrock",kind:"cloud",in:0.80,out:2.40,hr:null},
+  {name:"RunPod",kind:"gpu-rental",in:0,out:0,hr:0.69},
+  {name:"Lambda GPU",kind:"gpu-rental",in:0,out:0,hr:0.99},
+];
+
+// Simplify: reuse the tps estimator
+function parseParams(name){ const m=name.toLowerCase().match(/(\d+(?:\.\d+)?)b/); return m?parseFloat(m[1]):8; }
+function estimateTps(paramsB, bw){ const bytes=paramsB*1e9*0.55; return Math.min(2000, bw*1e9/bytes); }
+
+const MODEL_HW={ bandwidth:150, tdp:250, hwValue:3000 };
+
+function hourlyCloud(p, tps){
+  const tokensPerHour=tps*3600;
+  const inM=tokensPerHour*0.6/1e6, outM=tokensPerHour*0.4/1e6;
+  let c=inM*p.in+outM*p.out;
+  if(p.hr) c=Math.max(c,p.hr);
+  return c;
+}
+function hourlyLocal(tdp,electricity){
+  const energy=(tdp/1000)*electricity;
+  const dep=3000/(3*8760);
+  return energy+dep;
+}
+
+function fmt(n){ return n.toFixed(n<0.1?4:2); }
+
+const $=id=>document.getElementById(id);
+const hw=MODEL_HW;
+
+function load(){
+  const sel=$("provider"); sel.innerHTML="";
+  PROVIDERS.forEach(p=>{ const o=document.createElement("option"); o.value=p.name; o.textContent=`${p.name} (${p.kind})`; sel.appendChild(o);});
+}
+load();
+
+function renderCompare(){
+  const model=$("model").value, params=parseParams(model), tps=estimateTps(params,hw.bandwidth);
+  const hours=+$("hours").value, days=+$("days").value, elec=+$("electricity").value;
+  const rows=PROVIDERS.map(p=>{
+    const perHour = p.kind==="local" ? hourlyLocal(hw.tdp,elec) : hourlyCloud(p,tps);
+    return {name:p.name,kind:p.kind,perHour,perMonth:perHour*hours*days};
+  }).sort((a,b)=>a.perHour-b.perHour);
+  let html=`<table><tr><th>Provider</th><th>Kind</th><th class="num">$/hour</th><th class="num">$/month</th></tr>`;
+  rows.forEach(r=>html+=`<tr><td>${r.name}</td><td><span class="badge">${r.kind}</span></td><td class="num">$${fmt(r.perHour)}</td><td class="num">$${fmt(r.perMonth)}</td></tr>`);
+  html+=`</table>`;
+  $("compare").innerHTML=html;
+}
+
+function renderReport(){
+  const model=$("model").value, params=parseParams(model), tps=estimateTps(params,hw.bandwidth);
+  const hours=+$("hours").value, days=+$("days").value, elec=+$("electricity").value;
+  const p=PROVIDERS.find(x=>x.name===$("provider").value);
+  const localH=hourlyLocal(hw.tdp,elec);
+  const cloudH = p.kind==="local"? localH : hourlyCloud(p,tps);
+  let html=`<table>
+    <tr><th>Item</th><th class="num">$/hour</th><th class="num">$/month</th></tr>
+    <tr><td>Local (self-hosted)</td><td class="num">$${fmt(localH)}</td><td class="num">$${fmt(localH*hours*days)}</td></tr>
+    <tr><td>${p.name} (${p.kind})</td><td class="num">$${fmt(cloudH)}</td><td class="num">$${fmt(cloudH*hours*days)}</td></tr>
+  </table>
+  <p class="muted" style="margin-top:10px">Model ${model} · ~${params}B params · ~${Math.round(tps)} tok/s · ${hours}h×${days}d</p>`;
+  $("report").innerHTML=html;
+}
+
+$("btn").addEventListener("click",()=>{ $("err").textContent=""; renderReport(); renderCompare(); });
+renderReport(); renderCompare();
+</script>
+</body>
+</html>

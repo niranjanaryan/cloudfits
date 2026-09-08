@@ -1,0 +1,26 @@
+[package]
+name = "cloudfits-cli"
+version.workspace = true
+edition = "2024"
+description = "CLI to estimate LLM inference cost per hour and per month, and switch providers"
+license = "MIT"
+repository = "https://github.com/niranjanaryan/cloudfits"
+
+[dependencies]
+cloudfits-common = { path = "../cloudfits-common" }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+sysinfo = { workspace = true }
+tokio = { workspace = true }
+axum = { workspace = true }
+
+[[bin]]
+name = "cloudfits"
+path = "src/main.rs"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.0"
+tempfile = "3.0"

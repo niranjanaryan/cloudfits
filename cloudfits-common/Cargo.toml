@@ -1,0 +1,18 @@
+[package]
+name = "cloudfits-common"
+version.workspace = true
+edition = "2024"
+description = "Shared cost estimation + provider switching logic for cloudfits"
+license = "MIT"
+repository = "https://github.com/niranjanaryan/cloudfits"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+sysinfo = { workspace = true }
+
+[lib]
+name = "cloudfits_common"
+path = "src/lib.rs"

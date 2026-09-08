@@ -1,0 +1,21 @@
+[package]
+name = "cloudfits-tui"
+version.workspace = true
+edition = "2024"
+description = "Interactive terminal UI for cloudfits (browse model costs, compare providers, switch)"
+license = "MIT"
+repository = "https://github.com/niranjanaryan/cloudfits"
+
+[dependencies]
+cloudfits-common = { path = "../cloudfits-common" }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+sysinfo = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+
+[[bin]]
+name = "cloudfits-tui"
+path = "src/main.rs"

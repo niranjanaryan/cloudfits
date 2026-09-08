@@ -1,0 +1,10 @@
+# Rust
+/target
+**/*.rs.bk
+*.swp
+*.swo
+.DS_Store
+
+# Node (web)
+node_modules/
+dist/
