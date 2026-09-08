@@ -1,39 +1,22 @@
-# Sponsoring cloudfits
+# Sponsoring cloudfits & Open Source Research
 
-cloudfits is free and open source (MIT). It estimates LLM inference costs and
-makes switching between inference providers easy.
+cloudfits is a FOSS (MIT) CLI + library that estimates LLM inference costs,
+enables provider switching, and makes AI infrastructure measurable and
+portable. It is maintained as an independent open-source research project.
 
-If cloudfits saves you or your team time and money, consider supporting the
-project. Your sponsorship funds:
+Your sponsorship directly funds:
+- Multi-arch release builds (Linux/macOS/Windows x86_64 + ARM64)
+- Hardware detection and cost-model research (GPU, Apple Silicon, CPU)
+- Provider switching optimization and inference pricing transparency
+- Open grants and research tools for the AI infrastructure community
 
-- Ongoing maintenance, bug fixes, and releases.
-- New provider pricing and switching-effort data.
-- Documentation, examples, and the web UI.
-- CI, packaging, and distribution costs.
+If cloudfits saves you or your team time, compute budget, or vendor lock-in,
+consider sponsoring. Tiers:
+- Hobby: $1–4 / month — early access to releases, badges
+- Professional: $10–25 / month — feature requests, roadmap input
+- Corporate / Grant: $50+ / month — listed as sponsor, advisory access,
+  co-branded grants, and direct impact reporting for institutional backers
 
-## How to sponsor
-
-- **[GitHub Sponsors](https://github.com/sponsors/niranjanaryan)** — the easiest way to sponsor. One-time or monthly, public or private.
-- A **GitHub Sponsor button** appears at the top of the repository thanks to `.github/FUNDING.yml`.
-
-## Tiers (suggested)
-
-| Tier | Monthly | Who it's for |
-|---|---|---|
-| 🐣 Hobby | $1–4 | Individual users who want to say thanks |
-| 🚀 Professional | $10–25 | Teams using cloudfits in production |
-| 🏢 Corporate | $50+ | Companies that rely on cloudfits for cost tooling |
-
-Custom amounts are always welcome. All sponsors are thanked in the README's
-sponsors section whenever they opt in.
-
-## Corporate / one-time
-
-For invoices, procurement, or one-time donations, [open an issue](https://github.com/niranjanaryan/cloudfits/issues)
-or reach out to the maintainer.
-
-## Transparency
-
-Sponsorships are used solely for the maintenance and growth of this open-source
-project. cloudfits remains **100% free and MIT-licensed** — sponsorship never
-controls its direction or availability.
+All sponsors receive acknowledgment in releases and the repository.
+Grants: We actively apply for open-source research grants and industry
+sponsorships to sustain long-term development.
