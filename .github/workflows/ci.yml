@@ -38,16 +38,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             name: cloudfits-linux-x86_64
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             name: cloudfits-linux-aarch64
-          - os: macos-latest
+          - os: macos-14
             target: x86_64-apple-darwin
             name: cloudfits-darwin-x86_64
-          - os: macos-latest
+          - os: macos-14
             target: aarch64-apple-darwin
             name: cloudfits-darwin-aarch64
           - os: windows-latest
@@ -61,18 +61,27 @@ jobs:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
       - name: Build release binaries
-        run: cargo build --release --target ${{ matrix.target }}
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == *"arm"* && "${{ matrix.os }}" == *"ubuntu"* ]]; then
+            # Native ARM runner — target is the host, don't pass --target
+            cargo build --release
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
       - name: Package artifacts
         shell: bash
         run: |
           mkdir -p dist
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cp target/${{ matrix.target }}/release/cloudfits.exe dist/${{ matrix.name }}.exe
-            cp target/${{ matrix.target }}/release/cloudfits-tui.exe dist/${{ matrix.name }}-tui.exe
+          ext=""
+          [[ "${{ matrix.os }}" == "windows-latest" ]] && ext=".exe"
+          if [[ "${{ matrix.os }}" == *"arm"* && "${{ matrix.os }}" == *"ubuntu"* ]]; then
+            build_dir="target/release"
           else
-            cp target/${{ matrix.target }}/release/cloudfits dist/${{ matrix.name }}
-            cp target/${{ matrix.target }}/release/cloudfits-tui dist/${{ matrix.name }}-tui
+            build_dir="target/${{ matrix.target }}/release"
           fi
+          cp "$build_dir/cloudfits$ext" "dist/${{ matrix.name }}$ext"
+          cp "$build_dir/cloudfits-tui$ext" "dist/${{ matrix.name }}-tui$ext"
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
