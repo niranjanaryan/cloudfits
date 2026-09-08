@@ -32,6 +32,12 @@ OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
 TAG="${VERSION:-latest}"
 
+# Normalize arch names to match release artifact names (aarch64/amd64)
+case "$ARCH" in
+  arm64|aarch64) ARCH=aarch64 ;;
+  x86_64|amd64) ARCH=x86_64 ;;
+esac
+
 if [ "$TAG" = "latest" ]; then
   URL="https://github.com/$REPO/releases/latest/download"
 else
@@ -39,7 +45,9 @@ else
 fi
 
 for bin in cloudfits cloudfits-tui; do
-  NAME="${bin}-${OS}-${ARCH}"
+  BASE="cloudfits-${OS}-${ARCH}"
+  NAME="${BASE}-tui"
+  [ "$bin" = "cloudfits" ] && NAME="$BASE"
   echo "[cloudfits] downloading $NAME ..."
   curl -fsSL "$URL/$NAME" -o "$BIN_DIR/$bin" || fatal "download failed for $NAME"
   chmod +x "$BIN_DIR/$bin"
